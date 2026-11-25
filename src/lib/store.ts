@@ -23,11 +23,19 @@ function getFilePath(key: StoreKey): string {
   return path.join(getLocalDataDir(), `${key}.json`);
 }
 
+// Upstash names first, then the KV_REST_API_* names Vercel's Upstash integration creates.
+// A url and token are only used as a pair from the same set; the read-only KV token cannot write.
 function getRedisConfig(): { url: string; token: string } | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (!url || !token) return null;
-  return { url: url.replace(/\/+$/, ''), token };
+  const pairs = [
+    [process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN],
+    [process.env.KV_REST_API_URL, process.env.KV_REST_API_TOKEN]
+  ];
+  for (const [rawUrl, rawToken] of pairs) {
+    const url = rawUrl?.trim();
+    const token = rawToken?.trim();
+    if (url && token) return { url: url.replace(/\/+$/, ''), token };
+  }
+  return null;
 }
 
 async function readFromRedis<T>(key: StoreKey): Promise<T[] | null> {
@@ -66,9 +74,14 @@ async function writeToRedis<T>(key: StoreKey, data: T[]): Promise<boolean> {
   }
 }
 
-async function readCollection<T>(key: StoreKey): Promise<T[]> {
+// forWrite: the caller saves the whole list back, so a failed Redis read must not fall
+// back to the (empty) local file, or the save would overwrite every stored record.
+async function readCollection<T>(key: StoreKey, forWrite = false): Promise<T[]> {
   const fromRedis = await readFromRedis<T>(key);
   if (fromRedis !== null) return fromRedis;
+  if (forWrite && getRedisConfig()) {
+    throw new Error('Unable to save right now. Please try again in a moment.');
+  }
 
   try {
     const raw = await fs.readFile(getFilePath(key), 'utf-8');
@@ -82,6 +95,10 @@ async function readCollection<T>(key: StoreKey): Promise<T[]> {
 async function writeCollection<T>(key: StoreKey, data: T[]): Promise<void> {
   const savedToRedis = await writeToRedis(key, data);
   if (savedToRedis) return;
+  // Redis configured but the write failed: a /tmp copy would vanish with the instance, so fail loudly.
+  if (getRedisConfig()) {
+    throw new Error('Unable to save right now. Please try again in a moment.');
+  }
 
   const dir = getLocalDataDir();
   await fs.mkdir(dir, { recursive: true });
@@ -89,7 +106,7 @@ async function writeCollection<T>(key: StoreKey, data: T[]): Promise<void> {
 }
 
 export async function saveOrder(order: OrderRecord): Promise<OrderRecord> {
-  const orders = await readCollection<OrderRecord>('orders');
+  const orders = await readCollection<OrderRecord>('orders', true);
   orders.unshift(order);
   await writeCollection('orders', orders);
   return order;
@@ -106,7 +123,7 @@ export async function updateOrderPaymentStatus(
   status: PaymentStatus
 ): Promise<OrderRecord | null> {
   const normalized = orderId.trim().toUpperCase();
-  const orders = await readCollection<OrderRecord>('orders');
+  const orders = await readCollection<OrderRecord>('orders', true);
   let updated: OrderRecord | null = null;
   const next = orders.map((order) => {
     if (order.orderId.toUpperCase() === normalized) {
@@ -130,7 +147,7 @@ export async function updateOrderPaymentStatus(
 export async function saveConciergeInquiry(
   record: ConciergeInquiryRecord
 ): Promise<ConciergeInquiryRecord> {
-  const inquiries = await readCollection<ConciergeInquiryRecord>('inquiries');
+  const inquiries = await readCollection<ConciergeInquiryRecord>('inquiries', true);
   inquiries.unshift(record);
   await writeCollection('inquiries', inquiries);
   return record;
@@ -140,7 +157,7 @@ export async function saveNewsletterSubscriber(
   email: string
 ): Promise<{ alreadySubscribed: boolean; record: NewsletterRecord }> {
   const normalized = email.trim().toLowerCase();
-  const list = await readCollection<NewsletterRecord>('subscribers');
+  const list = await readCollection<NewsletterRecord>('subscribers', true);
   const existing = list.find((item) => item.email === normalized);
   if (existing) {
     return { alreadySubscribed: true, record: existing };

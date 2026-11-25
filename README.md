@@ -28,4 +28,4 @@ SMTP_USER=info@zevorastores.com
 SMTP_PASS=<your_hostinger_mailbox_password>
 SMTP_FROM=info@zevorastores.com
 ```
-*(Optional: Connect **Upstash Redis** in Vercel → Storage for permanent cloud order storage across serverless requests.)*
+*(Optional: Connect **Upstash Redis** in Vercel → Storage for permanent cloud order storage across serverless requests. The store reads `KV_REST_API_URL` + `KV_REST_API_TOKEN` (what the Vercel integration creates) or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (wins when both are set).)*

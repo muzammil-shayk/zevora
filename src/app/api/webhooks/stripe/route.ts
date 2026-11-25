@@ -69,7 +69,10 @@ export async function POST(request: Request): Promise<NextResponse<{ received: b
     }
 
     return NextResponse.json({ received: true });
-  } catch {
+  } catch (err: unknown) {
+    if (!(err instanceof SyntaxError)) {
+      return NextResponse.json({ received: false, error: 'Unable to update the order right now.' }, { status: 500 });
+    }
     return NextResponse.json({ received: false, error: 'Failed to parse webhook event.' }, { status: 400 });
   }
 }
