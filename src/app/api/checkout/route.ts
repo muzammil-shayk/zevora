@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { FREE_SHIPPING_THRESHOLD, PRODUCTS } from '@/data/catalog';
+import { FREE_SHIPPING_THRESHOLD, PRODUCTS, STANDARD_SHIPPING_FEE } from '@/data/catalog';
+import { sendOrderEmails } from '@/lib/email/orderMailer';
 import { getPaymentGateway } from '@/lib/payments/gateway';
 import { saveOrder } from '@/lib/store';
 import {
@@ -48,12 +49,21 @@ function parseCustomer(raw: unknown): CustomerDetails | null {
   const email = raw.email.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
 
+  const phoneDigits = raw.phone.replace(/\D/g, '');
+  if (phoneDigits.length < 10) return null;
+
+  const landmark = typeof raw.landmark === 'string' ? raw.landmark.trim().slice(0, 140) : undefined;
+  const deliveryNotes =
+    typeof raw.deliveryNotes === 'string' ? raw.deliveryNotes.trim().slice(0, 240) : undefined;
+
   return {
     fullName: raw.fullName.trim(),
     email,
     phone: raw.phone.trim(),
     address: raw.address.trim(),
-    city: raw.city.trim()
+    city: raw.city.trim(),
+    landmark: landmark || undefined,
+    deliveryNotes: deliveryNotes || undefined
   };
 }
 
@@ -90,24 +100,18 @@ export async function POST(request: Request): Promise<NextResponse<CheckoutApiRe
     const customer = parseCustomer(body.customer);
     if (!customer) {
       return NextResponse.json(
-        { ok: false, error: 'Please provide valid name, email, phone, address, and city.' },
+        {
+          ok: false,
+          error: 'Please enter your full name, valid email, active mobile/WhatsApp number (10+ digits), city, and complete delivery address.'
+        },
         { status: 400 }
       );
     }
 
-    if (!isPaymentMethod(body.paymentMethod)) {
-      return NextResponse.json({ ok: false, error: 'Please select a valid payment method.' }, { status: 400 });
-    }
-
+    const paymentMethod = isPaymentMethod(body.paymentMethod) ? body.paymentMethod : 'cod';
     const cardSummary = parseCardSummary(body.cardSummary);
-    if (body.paymentMethod === 'card' && !cardSummary && (process.env.PAYMENT_GATEWAY_MODE ?? 'sandbox') === 'sandbox') {
-      return NextResponse.json(
-        { ok: false, error: 'Please complete the cardholder name, card number, and expiry date.' },
-        { status: 400 }
-      );
-    }
 
-    // Authoritative server-side pricing from canonical catalog
+    // Authoritative server-side PKR pricing from canonical catalog
     const orderItems: OrderItem[] = [];
     let subtotal = 0;
 
@@ -142,10 +146,11 @@ export async function POST(request: Request): Promise<NextResponse<CheckoutApiRe
     const rawPromo = typeof body.promoCode === 'string' ? body.promoCode.trim().toUpperCase() : '';
     const promoApplied = rawPromo === 'ZEVORA10' ? 'ZEVORA10' : null;
     const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
-    const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 6;
+    const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE;
     const total = subtotal - discount + shipping;
 
     const pricing: OrderPricing = {
+      currency: 'PKR',
       subtotal,
       discount,
       shipping,
@@ -156,7 +161,7 @@ export async function POST(request: Request): Promise<NextResponse<CheckoutApiRe
     const orderId = `ZEV-2026-${crypto.randomInt(1000, 9999)}`;
     const giftNote = typeof body.giftNote === 'string' ? body.giftNote.trim().slice(0, 240) : '';
 
-    const gateway = getPaymentGateway(body.paymentMethod);
+    const gateway = getPaymentGateway(paymentMethod);
     const payment = await gateway.authorize({
       orderId,
       items: orderItems,
@@ -177,9 +182,11 @@ export async function POST(request: Request): Promise<NextResponse<CheckoutApiRe
     };
 
     await saveOrder(order);
-    return NextResponse.json({ ok: true, order }, { status: 201 });
+    const emailNotification = await sendOrderEmails(order);
+
+    return NextResponse.json({ ok: true, order, emailNotification }, { status: 201 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unable to process checkout right now.';
+    const message = err instanceof Error ? err.message : 'Unable to place your order right now.';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

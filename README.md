@@ -1,26 +1,23 @@
-# ZEVORA — Jewellery Beyond Elegance
+# ZEVORA — Jewellery Beyond Elegance (Pakistan · PKR)
 
-Official Next.js (App Router + Strict TypeScript) storefront for **ZEVORA** ([zevorastores.com](https://zevorastores.com)).
+Official Next.js (App Router + Strict TypeScript) storefront for **ZEVORA** ([zevorastores.com](https://zevorastores.com)), optimized for the **Pakistan (PKR)** market with **Cash on Delivery (COD)** and automated **Email Shipping Dispatch** to `info@zevorastores.com`.
 
-## Highlights
-- **Honest Everyday Luxury**: 316L stainless steel rings (silver-tone, gold-color, and two-tone finishes) with precision-cut simulated AAA cubic zirconia & black faceted crystals.
-- **Unified HD Brand Assets**: Extracted transparent HD ZEVORA monogram & wordmark, obsidian silk master crest, medallion icon, and HD luxury packaging imagery.
-- **Interactive Shopping Experience**: Category & finish filters, live search, multi-angle Quick-View gallery, 30-Second Interactive Ring Size Finder (`US 5–12` / `Size 16–23`), persistent Bag & Wishlist drawers, welcome promo `ZEVORA10`, and Personal Stylist Concierge.
-- **Full-Stack Payment & Order APIs**: Server-authoritative `/api/checkout` with pluggable payment gateway adapters (Stripe / Sandbox Card, Cash on Delivery, Bank/IBAN Transfer), live `/api/orders` tracking, `/api/concierge`, `/api/newsletter`, and signed `/api/webhooks/stripe`.
-- **Zero `any` TypeScript**: Strict mode enabled with runtime type guards across all client and server code.
+## Features
+- **Pakistan (PKR) Pricing & Delivery**: Honest 316L stainless steel & simulated AAA crystal jewellery (`Rs. 1,650 – Rs. 2,750`, Collector's 3-Ring Vault `Rs. 5,450`), nationwide courier fee `Rs. 250`, FREE delivery over `Rs. 3,500`, welcome promo `ZEVORA10` (10% off).
+- **Cash on Delivery (COD) Checkout Hook (`useCodCheckout`)**: Streamlined COD checkout with Pakistan city dropdown, mobile/WhatsApp validation, nearest landmark, rider notes, and optional handwritten gift card.
+- **Automated Shipping Email Dispatch (`orderMailer.ts`)**: Every new COD order automatically emails a complete packing slip + courier shipping label + 1-tap WhatsApp confirmation link directly to `info@zevorastores.com` (using Hostinger SMTP or Resend) AND sends a branded confirmation receipt to the customer.
+- **Live Order Tracking**: Customers can track their `ZEV-2026-XXXX` order live anytime via `/api/orders`.
+- **Zero `any` TypeScript**: Strict mode enabled with runtime type guards across all client and server modules.
 
-## Local Development
-```bash
-npm install
-npm run dev
+## Vercel Environment Variables (To Receive Live Order Emails)
+Add these in **Vercel → Project Settings → Environment Variables**:
+```env
+NEXT_PUBLIC_SITE_URL=https://zevorastores.com
+ORDER_NOTIFICATION_EMAIL=info@zevorastores.com
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_USER=info@zevorastores.com
+SMTP_PASS=<your_hostinger_mailbox_password>
+SMTP_FROM=info@zevorastores.com
 ```
-Open [http://localhost:3000](http://localhost:3000).
-
-## Production Deployment (Vercel + Hostinger)
-1. Import this repository in [Vercel](https://vercel.com) (Next.js is detected automatically).
-2. Configure environment variables from `.env.example` (set `NEXT_PUBLIC_SITE_URL=https://zevorastores.com`, and optionally connect **Upstash Redis** from Vercel Storage for permanent cloud order persistence).
-3. Add `zevorastores.com` under **Vercel → Settings → Domains** and enter Vercel’s `A` (`@`) and `CNAME` (`www`) records in Hostinger’s **DNS / Nameservers** panel while keeping Hostinger nameservers active for `info@zevorastores.com`.
-
-## Contact
-- Email: `info@zevorastores.com`
-- Domain: [https://zevorastores.com](https://zevorastores.com)
+*(Optional: Connect **Upstash Redis** in Vercel → Storage for permanent cloud order storage across serverless requests.)*

@@ -2310,6 +2310,30 @@ button {
   color: var(--ink-soft);
 }
 
+.cod-active-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: var(--champagne);
+  border: 1px solid rgba(156, 118, 48, 0.32);
+}
+
+.cod-active-card strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--ink);
+  margin: 0.12rem 0 0.2rem;
+}
+
+.cod-sub {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+}
+
 .receipt-card {
   padding: 1.15rem;
   border-radius: 16px;

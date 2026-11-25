@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { FREE_SHIPPING_THRESHOLD, PRODUCTS } from '@/data/catalog';
-import type {
-  BagLineInput,
-  CheckoutApiResponse,
-  CheckoutRequest,
-  OrderRecord,
-  PaymentMethod
-} from '@/types/commerce';
+import {
+  FREE_SHIPPING_THRESHOLD,
+  PAKISTAN_CITIES,
+  PRODUCTS,
+  STANDARD_SHIPPING_FEE
+} from '@/data/catalog';
+import { useCodCheckout } from '@/hooks/useCodCheckout';
+import { formatPKR } from '@/lib/format';
+import type { BagLineInput, OrderRecord } from '@/types/commerce';
 
 export type BagEntry = BagLineInput;
 
@@ -58,7 +59,7 @@ export function BagDrawer({
 
   const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
   const afterDiscount = subtotal - discount;
-  const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 6;
+  const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE;
   const total = afterDiscount + shipping;
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progressPct = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
@@ -81,11 +82,11 @@ export function BagDrawer({
         <div className="shipping-progress-text">
           {remaining === 0 && totalItems > 0 ? (
             <>
-              ✦ <strong>Complimentary Velvet Box &amp; Insured Delivery unlocked!</strong>
+              ✦ <strong>FREE Nationwide Delivery &amp; Velvet Box unlocked!</strong>
             </>
           ) : (
             <>
-              Add <strong>${remaining}</strong> more for complimentary insured delivery
+              Add <strong>{formatPKR(remaining)}</strong> more for FREE nationwide delivery across Pakistan
             </>
           )}
         </div>
@@ -99,8 +100,8 @@ export function BagDrawer({
           <div className="drawer-empty">
             <strong>Your ZEVORA bag is waiting.</strong>
             <p>
-              Explore our silver-tone &amp; gold-color stainless steel rings—every piece arrives gift-ready in our
-              signature box.
+              Explore our silver-tone &amp; gold-color stainless steel rings—every piece arrives gift-ready with Cash
+              on Delivery across Pakistan.
             </p>
             <button type="button" className="btn btn-gold" onClick={onClose}>
               Explore Collection
@@ -133,7 +134,7 @@ export function BagDrawer({
                         +
                       </button>
                     </div>
-                    <strong>${p.price * entry.qty}</strong>
+                    <strong>{formatPKR(p.price * entry.qty)}</strong>
                   </div>
                 </div>
               </div>
@@ -185,26 +186,26 @@ export function BagDrawer({
           <div className="bag-totals">
             <div className="total-row">
               <span>Subtotal</span>
-              <span>${subtotal}</span>
+              <span>{formatPKR(subtotal)}</span>
             </div>
             {promoApplied && (
               <div className="total-row discount-row">
                 <span>Welcome Gift (ZEVORA10 · 10%)</span>
-                <span>-${discount}</span>
+                <span>-{formatPKR(discount)}</span>
               </div>
             )}
             <div className="total-row">
-              <span>Velvet Box &amp; Insured Delivery</span>
-              <span>{shipping === 0 ? 'Complimentary' : `$${shipping}`}</span>
+              <span>Velvet Box &amp; Courier Delivery</span>
+              <span>{shipping === 0 ? 'Complimentary' : formatPKR(shipping)}</span>
             </div>
             <div className="total-row grand-total">
-              <span>Estimated Total</span>
-              <strong>${total}</strong>
+              <span>Cash on Delivery Total</span>
+              <strong>{formatPKR(total)}</strong>
             </div>
           </div>
 
           <button type="button" className="btn btn-gold btn-full" onClick={onProceedCheckout}>
-            Proceed to Secure Checkout
+            Proceed to Cash on Delivery Checkout
           </button>
         </div>
       )}
@@ -274,7 +275,7 @@ export function WishlistDrawer({
                     </button>
                   </div>
                   <div className="bag-item-meta">
-                    ${p.price} · {p.finishShort}
+                    {formatPKR(p.price)} · {p.finishShort}
                   </div>
                   <div className="bag-item-bottom">
                     <button
@@ -314,19 +315,6 @@ interface CheckoutModalProps {
   onTrackOrder: (orderId: string) => void;
 }
 
-function formatCardNumber(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 16);
-  return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
-}
-
-function formatExpiry(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 4);
-  if (digits.length >= 3) {
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  }
-  return digits;
-}
-
 export function CheckoutModal({
   isOpen,
   bag,
@@ -341,102 +329,40 @@ export function CheckoutModal({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [city, setCity] = useState<string>(PAKISTAN_CITIES[0]);
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [landmark, setLandmark] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
 
-  // Card inputs (only last 4 digits sent in sandbox mode; never persisted raw)
-  const [cardholderName, setCardholderName] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [confirmedOrder, setConfirmedOrder] = useState<OrderRecord | null>(null);
+  const { submitting, error, confirmedOrder, emailNotification, submitCodOrder, resetCheckout } =
+    useCodCheckout();
 
   if (!isOpen) return null;
 
-  const fillTestCard = (): void => {
-    setCardholderName(fullName.trim() || 'Shazia Rahman');
-    setCardNumber('4242 4242 4242 4242');
-    setExpiry('12/28');
-    setCvc('424');
-  };
-
   const handleClose = (): void => {
-    setConfirmedOrder(null);
-    setError('');
+    resetCheckout();
     onClose();
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setError('');
+    const order = await submitCodOrder({
+      items: bag,
+      customer: {
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        city,
+        address: address.trim(),
+        landmark: landmark.trim() || undefined,
+        deliveryNotes: deliveryNotes.trim() || undefined
+      },
+      promoCode: promoApplied ? 'ZEVORA10' : undefined,
+      giftNote: giftNote || undefined
+    });
 
-    if (paymentMethod === 'card') {
-      const rawDigits = cardNumber.replace(/\D/g, '');
-      if (rawDigits.length < 13) {
-        setError('Please enter a valid 16-digit card number (or click "Fill Sandbox Test Card").');
-        return;
-      }
-      if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-        setError('Please enter card expiry in MM/YY format.');
-        return;
-      }
-      if (cvc.replace(/\D/g, '').length < 3) {
-        setError('Please enter a valid 3- or 4-digit security code.');
-        return;
-      }
-    }
-
-    setSubmitting(true);
-    try {
-      const payload: CheckoutRequest = {
-        items: bag,
-        customer: {
-          fullName: fullName.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          city: city.trim()
-        },
-        paymentMethod,
-        promoCode: promoApplied ? 'ZEVORA10' : undefined,
-        giftNote: giftNote || undefined,
-        cardSummary:
-          paymentMethod === 'card'
-            ? {
-                cardholderName: cardholderName.trim() || fullName.trim(),
-                cardLast4: cardNumber.replace(/\D/g, '').slice(-4),
-                expiry
-              }
-            : undefined
-      };
-
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = (await res.json()) as CheckoutApiResponse;
-      if (!data.ok) {
-        setError(data.error);
-        return;
-      }
-
-      if (data.order.payment.checkoutUrl) {
-        window.location.href = data.order.payment.checkoutUrl;
-        return;
-      }
-
-      setConfirmedOrder(data.order);
-      onOrderConfirmed(data.order);
-    } catch {
-      setError('Network error while connecting to ZEVORA payment gateway. Please try again.');
-    } finally {
-      setSubmitting(false);
+    if (order) {
+      onOrderConfirmed(order);
     }
   };
 
@@ -452,30 +378,31 @@ export function CheckoutModal({
             <span className="success-star" aria-hidden="true">
               ✦
             </span>
-            <h2>Order Confirmed</h2>
+            <h2>Order Placed Successfully</h2>
             <p>
-              Reference <strong>{confirmedOrder.orderId}</strong> · Total{' '}
-              <strong>${confirmedOrder.pricing.total}</strong>
+              Order Reference <strong>{confirmedOrder.orderId}</strong> · Payable on Delivery:{' '}
+              <strong>{formatPKR(confirmedOrder.pricing.total)}</strong>
             </p>
             <div className="receipt-card" style={{ textAlign: 'left', margin: '1rem 0 1.35rem' }}>
               <div className="receipt-header">
                 <div>
-                  <span className="receipt-label">Transaction ID</span>
-                  <strong>{confirmedOrder.payment.transactionId}</strong>
+                  <span className="receipt-label">Delivery To</span>
+                  <strong>
+                    {confirmedOrder.customer.fullName} · {confirmedOrder.customer.city}
+                  </strong>
                 </div>
-                <span className={`payment-status-pill ${confirmedOrder.payment.status}`}>
-                  {confirmedOrder.payment.status === 'paid'
-                    ? 'Paid · Verified'
-                    : confirmedOrder.payment.status === 'pending_cod'
-                      ? 'Cash on Delivery'
-                      : 'Awaiting Transfer'}
-                </span>
+                <span className="payment-status-pill pending_cod">Cash on Delivery</span>
               </div>
               {confirmedOrder.payment.instructions && (
                 <p style={{ fontSize: '0.84rem', color: 'var(--ink-soft)', margin: '0.75rem 0 0' }}>
                   {confirmedOrder.payment.instructions}
                 </p>
               )}
+              <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', margin: '0.6rem 0 0' }}>
+                {emailNotification?.merchantNotified
+                  ? '✦ Dispatch details sent to ZEVORA Atelier & confirmation emailed to you.'
+                  : '✦ Order recorded in ZEVORA dispatch queue. Keep your order reference handy to track status.'}
+              </p>
             </div>
             <div className="concierge-actions" style={{ justifyContent: 'center' }}>
               <button
@@ -483,7 +410,7 @@ export function CheckoutModal({
                 className="btn btn-gold"
                 onClick={() => {
                   const id = confirmedOrder.orderId;
-                  setConfirmedOrder(null);
+                  resetCheckout();
                   onTrackOrder(id);
                 }}
               >
@@ -496,11 +423,11 @@ export function CheckoutModal({
           </div>
         ) : (
           <>
-            <span className="section-eyebrow">ZEVORA SECURE CHECKOUT</span>
-            <h2 id="checkoutTitle">Delivery &amp; Payment</h2>
+            <span className="section-eyebrow">ZEVORA PAKISTAN · CASH ON DELIVERY</span>
+            <h2 id="checkoutTitle">Delivery Details</h2>
             <p className="modal-lead">
-              {totalItems} creation{totalItems === 1 ? '' : 's'} · Total <strong>${total}</strong> · Signature Velvet
-              Box &amp; 30-Day Free Exchanges included.
+              {totalItems} creation{totalItems === 1 ? '' : 's'} · Total{' '}
+              <strong>{formatPKR(total)}</strong> · Pay cash at your doorstep · Signature Velvet Box included.
             </p>
 
             {giftNote && (
@@ -520,11 +447,24 @@ export function CheckoutModal({
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Shazia Rahman"
+                    placeholder="Ayesha / Muzammil"
                   />
                 </label>
                 <label className="field-group">
-                  <span>Email Address</span>
+                  <span>Mobile / WhatsApp Number</span>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="0300 1234567"
+                  />
+                </label>
+              </div>
+
+              <div className="form-row-2">
+                <label className="field-group">
+                  <span>Email (For Order Receipt)</span>
                   <input
                     type="email"
                     required
@@ -533,158 +473,64 @@ export function CheckoutModal({
                     placeholder="you@email.com"
                   />
                 </label>
-              </div>
-
-              <div className="form-row-2">
                 <label className="field-group">
-                  <span>Phone / WhatsApp</span>
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+92 300 0000000"
-                  />
-                </label>
-                <label className="field-group">
-                  <span>City</span>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="Lahore / Dubai / London"
-                  />
+                  <span>City (Pakistan)</span>
+                  <select value={city} onChange={(e) => setCity(e.target.value)}>
+                    {PAKISTAN_CITIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
 
               <label className="field-group">
-                <span>Delivery Address</span>
+                <span>Complete Street / House / Sector Address</span>
                 <input
                   type="text"
                   required
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Street address, house / apartment"
+                  placeholder="House #, Street #, Block / Phase / Sector"
                 />
               </label>
 
-              {/* Payment Gateway Method Selector */}
-              <div className="payment-methods-wrap">
-                <span className="payment-section-label">Choose Payment Method</span>
-                <div className="payment-method-grid" role="radiogroup" aria-label="Payment method">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={paymentMethod === 'card'}
-                    className={`payment-method-card ${paymentMethod === 'card' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('card')}
-                  >
-                    <strong>Card / Apple Pay</strong>
-                    <span>Stripe Gateway (Sandbox Active)</span>
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={paymentMethod === 'cod'}
-                    className={`payment-method-card ${paymentMethod === 'cod' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('cod')}
-                  >
-                    <strong>Cash on Delivery</strong>
-                    <span>Pay at your doorstep</span>
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={paymentMethod === 'bank_transfer'}
-                    className={`payment-method-card ${paymentMethod === 'bank_transfer' ? 'active' : ''}`}
-                    onClick={() => setPaymentMethod('bank_transfer')}
-                  >
-                    <strong>Bank / IBAN</strong>
-                    <span>Instant transfer reference</span>
-                  </button>
-                </div>
+              <div className="form-row-2">
+                <label className="field-group">
+                  <span>Nearest Landmark (Optional)</span>
+                  <input
+                    type="text"
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
+                    placeholder="Near Main Market / Mosque / Park"
+                  />
+                </label>
+                <label className="field-group">
+                  <span>Courier Note (Optional)</span>
+                  <input
+                    type="text"
+                    value={deliveryNotes}
+                    onChange={(e) => setDeliveryNotes(e.target.value)}
+                    placeholder="Call before arrival / Evening preferred"
+                  />
+                </label>
               </div>
 
-              {paymentMethod === 'card' && (
-                <div className="card-gateway-box">
-                  <div className="card-gateway-head">
-                    <span>Encrypted Card Details (Sandbox Mode)</span>
-                    <button type="button" className="text-link-gold" onClick={fillTestCard}>
-                      Fill Sandbox Test Card
-                    </button>
-                  </div>
-                  <label className="field-group">
-                    <span>Name on Card</span>
-                    <input
-                      type="text"
-                      required
-                      value={cardholderName}
-                      onChange={(e) => setCardholderName(e.target.value)}
-                      placeholder="SHAZIA RAHMAN"
-                    />
-                  </label>
-                  <label className="field-group">
-                    <span>Card Number</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      required
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                      placeholder="4242 4242 4242 4242"
-                    />
-                  </label>
-                  <div className="form-row-2">
-                    <label className="field-group">
-                      <span>Expiry (MM/YY)</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        required
-                        value={expiry}
-                        onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                        placeholder="12/28"
-                      />
-                    </label>
-                    <label className="field-group">
-                      <span>Security Code (CVC)</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={4}
-                        required
-                        value={cvc}
-                        onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                        placeholder="424"
-                      />
-                    </label>
-                  </div>
+              <div className="cod-active-card">
+                <div>
+                  <span className="receipt-label">Active Payment Method</span>
+                  <strong>Cash on Delivery (COD) — Pay {formatPKR(total)} at Doorstep</strong>
+                  <span className="cod-sub">
+                    Zero advance payment required · Nationwide 2–4 working day delivery · Online Card &amp; JazzCash
+                    coming soon
+                  </span>
                 </div>
-              )}
-
-              {paymentMethod === 'cod' && (
-                <div className="size-tips-box" style={{ marginBottom: 0 }}>
-                  <strong>Cash on Delivery:</strong> Pay <strong>${total}</strong> in cash when your ZEVORA velvet box
-                  arrives. Zero upfront card needed.
-                </div>
-              )}
-
-              {paymentMethod === 'bank_transfer' && (
-                <div className="size-tips-box" style={{ marginBottom: 0 }}>
-                  <strong>Bank Transfer / IBAN:</strong> We’ll generate a unique transfer reference and reserve your
-                  selected sizes immediately for 24 hours.
-                </div>
-              )}
+                <span className="payment-status-pill paid">Selected</span>
+              </div>
 
               <button type="submit" className="btn btn-gold btn-full" disabled={submitting}>
-                {submitting
-                  ? 'Authorizing Payment...'
-                  : paymentMethod === 'card'
-                    ? `Pay $${total} Securely`
-                    : paymentMethod === 'cod'
-                      ? `Confirm COD Order — $${total}`
-                      : `Reserve & Get Bank Reference — $${total}`}
+                {submitting ? 'Placing Your COD Order...' : `Confirm Cash on Delivery Order — ${formatPKR(total)}`}
               </button>
             </form>
           </>

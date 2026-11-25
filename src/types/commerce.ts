@@ -1,4 +1,4 @@
-export type PaymentMethod = 'card' | 'cod' | 'bank_transfer';
+export type PaymentMethod = 'cod' | 'card' | 'bank_transfer';
 
 export type PaymentStatus = 'paid' | 'pending_cod' | 'awaiting_transfer' | 'failed';
 
@@ -16,6 +16,8 @@ export interface CustomerDetails {
   phone: string;
   address: string;
   city: string;
+  landmark?: string;
+  deliveryNotes?: string;
 }
 
 export interface CardInputSummary {
@@ -45,6 +47,7 @@ export interface OrderItem {
 }
 
 export interface OrderPricing {
+  currency: 'PKR';
   subtotal: number;
   discount: number;
   shipping: number;
@@ -63,6 +66,13 @@ export interface PaymentReceipt {
   checkoutUrl?: string;
 }
 
+export interface OrderEmailDispatchResult {
+  merchantNotified: boolean;
+  customerNotified: boolean;
+  transport: 'smtp' | 'resend' | 'unconfigured';
+  errorMessage?: string;
+}
+
 export interface OrderRecord {
   orderId: string;
   createdAt: string;
@@ -77,6 +87,7 @@ export interface OrderRecord {
 export interface CheckoutSuccessResponse {
   ok: true;
   order: OrderRecord;
+  emailNotification: OrderEmailDispatchResult;
 }
 
 export interface ApiErrorResponse {
@@ -134,5 +145,5 @@ export function isNonEmptyString(value: unknown): value is string {
 }
 
 export function isPaymentMethod(value: unknown): value is PaymentMethod {
-  return value === 'card' || value === 'cod' || value === 'bank_transfer';
+  return value === 'cod' || value === 'card' || value === 'bank_transfer';
 }

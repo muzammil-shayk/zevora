@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, type FormEvent } from 'react';
+import { formatPKR } from '@/lib/format';
 import type { OrderLookupApiResponse, OrderRecord } from '@/types/commerce';
 
 interface TrackOrderModalProps {
@@ -13,12 +14,12 @@ const ORDER_STEPS = [
   { key: 'confirmed', label: 'Order Confirmed' },
   { key: 'inspecting', label: 'Quality Check' },
   { key: 'packed', label: 'Velvet Box Packed' },
-  { key: 'shipped', label: 'Insured Dispatch' }
+  { key: 'shipped', label: 'Courier Dispatched' }
 ] as const;
 
 function getPaymentBadgeLabel(status: OrderRecord['payment']['status']): string {
   if (status === 'paid') return 'Paid · Verified';
-  if (status === 'pending_cod') return 'Cash on Delivery';
+  if (status === 'pending_cod') return 'Cash on Delivery (COD)';
   if (status === 'awaiting_transfer') return 'Awaiting Bank Transfer';
   return 'Payment Failed';
 }
@@ -82,8 +83,8 @@ export function TrackOrderModal({ isOpen, initialOrderId, onClose }: TrackOrderM
         <span className="section-eyebrow">LIVE ORDER STATUS</span>
         <h2 id="trackOrderTitle">Track Your ZEVORA Order</h2>
         <p className="modal-lead">
-          Enter your order reference (e.g. <strong>ZEV-2026-4821</strong>) to view live payment status, packaging
-          progress, and items.
+          Enter your order reference (e.g. <strong>ZEV-2026-4821</strong>) to check your Cash on Delivery dispatch
+          progress and items.
         </p>
 
         <form className="promo-row" onSubmit={handleSubmit} style={{ marginBottom: '1rem' }}>
@@ -129,7 +130,7 @@ export function TrackOrderModal({ isOpen, initialOrderId, onClose }: TrackOrderM
                   <span>
                     {item.qty}× {item.name} ({item.size})
                   </span>
-                  <strong>${item.lineTotal}</strong>
+                  <strong>{formatPKR(item.lineTotal)}</strong>
                 </div>
               ))}
             </div>
@@ -140,16 +141,16 @@ export function TrackOrderModal({ isOpen, initialOrderId, onClose }: TrackOrderM
                 <strong>{order.customer.fullName}</strong>
               </div>
               <div>
-                <span>Destination</span>
+                <span>City</span>
                 <strong>{order.customer.city}</strong>
               </div>
               <div>
-                <span>Transaction ID</span>
-                <strong>{order.payment.transactionId}</strong>
+                <span>Phone</span>
+                <strong>{order.customer.phone}</strong>
               </div>
               <div>
-                <span>Total</span>
-                <strong>${order.pricing.total}</strong>
+                <span>COD Total</span>
+                <strong>{formatPKR(order.pricing.total)}</strong>
               </div>
             </div>
 

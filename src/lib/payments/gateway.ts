@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { formatPKR } from '@/lib/format';
 import type {
   CardInputSummary,
   CustomerDetails,
@@ -26,13 +27,27 @@ function generateReference(prefix: string): string {
   return `${prefix}_${crypto.randomBytes(6).toString('hex')}`;
 }
 
+class CodGatewayAdapter implements PaymentGatewayAdapter {
+  readonly method: PaymentMethod = 'cod';
+
+  async authorize(context: GatewayExecutionContext): Promise<PaymentReceipt> {
+    return {
+      provider: 'zevora_cod',
+      method: 'cod',
+      status: 'pending_cod',
+      transactionId: generateReference('cod_zevora'),
+      instructions: `Pay ${formatPKR(context.pricing.total)} in cash at your doorstep in ${context.customer.city}. Our courier rider will call ${context.customer.phone} before delivery.`
+    };
+  }
+}
+
 class StripeLiveGatewayAdapter implements PaymentGatewayAdapter {
   readonly method: PaymentMethod = 'card';
 
   constructor(private readonly secretKey: string) {}
 
   async authorize(context: GatewayExecutionContext): Promise<PaymentReceipt> {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zevorastores.com';
     const body = new URLSearchParams();
     body.set('mode', 'payment');
     body.set('customer_email', context.customer.email);
@@ -42,7 +57,7 @@ class StripeLiveGatewayAdapter implements PaymentGatewayAdapter {
     body.set('metadata[orderId]', context.orderId);
 
     context.items.forEach((item, idx) => {
-      body.set(`line_items[${idx}][price_data][currency]`, 'usd');
+      body.set(`line_items[${idx}][price_data][currency]`, 'pkr');
       body.set(`line_items[${idx}][price_data][product_data][name]`, `${item.name} (${item.size})`);
       body.set(`line_items[${idx}][price_data][unit_amount]`, String(Math.round(item.unitPrice * 100)));
       body.set(`line_items[${idx}][quantity]`, String(item.qty));
@@ -50,8 +65,8 @@ class StripeLiveGatewayAdapter implements PaymentGatewayAdapter {
 
     if (context.pricing.shipping > 0) {
       const idx = context.items.length;
-      body.set(`line_items[${idx}][price_data][currency]`, 'usd');
-      body.set(`line_items[${idx}][price_data][product_data][name]`, 'Velvet Box & Insured Delivery');
+      body.set(`line_items[${idx}][price_data][currency]`, 'pkr');
+      body.set(`line_items[${idx}][price_data][product_data][name]`, 'Nationwide Insured Delivery');
       body.set(`line_items[${idx}][price_data][unit_amount]`, String(Math.round(context.pricing.shipping * 100)));
       body.set(`line_items[${idx}][quantity]`, '1');
     }
@@ -67,7 +82,7 @@ class StripeLiveGatewayAdapter implements PaymentGatewayAdapter {
 
     const json: unknown = await res.json();
     if (!res.ok || !isRecord(json) || typeof json.id !== 'string') {
-      throw new Error('Stripe session creation failed. Verify STRIPE_SECRET_KEY in .env.local.');
+      throw new Error('Stripe session creation failed. Verify STRIPE_SECRET_KEY.');
     }
 
     const checkoutUrl = typeof json.url === 'string' ? json.url : undefined;
@@ -77,7 +92,7 @@ class StripeLiveGatewayAdapter implements PaymentGatewayAdapter {
       status: 'awaiting_transfer',
       transactionId: json.id,
       checkoutUrl,
-      instructions: 'Redirecting to Stripe secure hosted checkout.'
+      instructions: 'Redirecting to secure card checkout.'
     };
   }
 }
@@ -93,21 +108,7 @@ class SandboxCardGatewayAdapter implements PaymentGatewayAdapter {
       status: 'paid',
       transactionId: generateReference('pi_zevora_test'),
       cardLast4: last4,
-      instructions: `Approved in ZEVORA Payment Sandbox (Card ending in ${last4}). Add STRIPE_SECRET_KEY in .env.local to switch to live Stripe.`
-    };
-  }
-}
-
-class CodGatewayAdapter implements PaymentGatewayAdapter {
-  readonly method: PaymentMethod = 'cod';
-
-  async authorize(context: GatewayExecutionContext): Promise<PaymentReceipt> {
-    return {
-      provider: 'zevora_cod',
-      method: 'cod',
-      status: 'pending_cod',
-      transactionId: generateReference('cod_zevora'),
-      instructions: `Pay $${context.pricing.total} in cash upon doorstep delivery. Our courier will call ${context.customer.phone} before arrival.`
+      instructions: `Approved in ZEVORA Payment Sandbox (Card ending in ${last4}).`
     };
   }
 }
@@ -116,8 +117,8 @@ class BankTransferGatewayAdapter implements PaymentGatewayAdapter {
   readonly method: PaymentMethod = 'bank_transfer';
 
   async authorize(context: GatewayExecutionContext): Promise<PaymentReceipt> {
-    const bankName = process.env.ZEVORA_BANK_NAME || 'ZEVORA Luxury Commerce Bank';
-    const title = process.env.ZEVORA_BANK_ACCOUNT_TITLE || 'ZEVORA Jewellery Studio';
+    const bankName = process.env.ZEVORA_BANK_NAME || 'ZEVORA Bank';
+    const title = process.env.ZEVORA_BANK_ACCOUNT_TITLE || 'ZEVORA Jewellery';
     const iban = process.env.ZEVORA_BANK_IBAN || 'PK00ZEVR0000001234567890';
     const ref = `TRF-${context.orderId}`;
 
@@ -127,7 +128,7 @@ class BankTransferGatewayAdapter implements PaymentGatewayAdapter {
       status: 'awaiting_transfer',
       transactionId: generateReference('bnk_zevora'),
       bankReference: ref,
-      instructions: `Transfer $${context.pricing.total} to ${title} (${bankName} · IBAN: ${iban}) with reference ${ref}. Your pieces are reserved for 24 hours.`
+      instructions: `Transfer ${formatPKR(context.pricing.total)} to ${title} (${bankName} · IBAN: ${iban}) with reference ${ref}.`
     };
   }
 }

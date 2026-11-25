@@ -7,10 +7,12 @@ import {
   LOOKBOOK_TABS,
   PRODUCTS,
   RING_SIZES,
+  STANDARD_SHIPPING_FEE,
   type FinishTone,
   type ProductCategory,
   type RingSizeRow
 } from '@/data/catalog';
+import { formatPKR } from '@/lib/format';
 import type {
   ConciergeApiResponse,
   NewsletterApiResponse,
@@ -23,10 +25,10 @@ import { BagDrawer, CheckoutModal, WishlistDrawer, type BagEntry } from './BagDr
 import { TrackOrderModal } from './TrackOrderModal';
 
 const STORAGE_KEYS = {
-  bag: 'zevora_next_bag_v1',
-  wishlist: 'zevora_next_wishlist_v1',
-  savedSize: 'zevora_next_size_v1',
-  lastOrderId: 'zevora_next_last_order_v1'
+  bag: 'zevora_pkr_bag_v1',
+  wishlist: 'zevora_pkr_wishlist_v1',
+  savedSize: 'zevora_pkr_size_v1',
+  lastOrderId: 'zevora_pkr_last_order_v1'
 };
 
 type OverlayType =
@@ -100,7 +102,6 @@ export function ZevoraStorefront() {
 
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
 
-  // Hydrate persisted state cleanly on client
   useEffect(() => {
     try {
       const b = localStorage.getItem(STORAGE_KEYS.bag);
@@ -216,7 +217,7 @@ export function ZevoraStorefront() {
       }
     }
     const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
-    const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 6;
+    const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE;
     return { subtotal, totalItems, total: subtotal - discount + shipping };
   }, [bag, promoApplied]);
 
@@ -296,7 +297,7 @@ export function ZevoraStorefront() {
     setPromoApplied(false);
     setGiftNoteEnabled(false);
     setGiftNote('');
-    showToast(`Order ${order.orderId} confirmed!`);
+    showToast(`COD Order ${order.orderId} confirmed!`);
   };
 
   const handleOpenTrackOrder = (orderId?: string): void => {
@@ -373,7 +374,7 @@ export function ZevoraStorefront() {
       <div className="announcement-bar" role="region" aria-label="Boutique benefits">
         <div className="container announcement-inner">
           <span>
-            316L Stainless Steel &amp; AAA Crystal Craft · Complimentary Delivery Over ${FREE_SHIPPING_THRESHOLD}
+            Cash on Delivery Across Pakistan · Free Delivery Over {formatPKR(FREE_SHIPPING_THRESHOLD)}
           </span>
           <span className="announcement-dot" aria-hidden="true">
             ✦
@@ -552,14 +553,14 @@ export function ZevoraStorefront() {
             <div className="hero-copy">
               <div className="eyebrow-pill">
                 <span aria-hidden="true">✦</span>
-                <span>316L STAINLESS STEEL · CRYSTAL ATELIER</span>
+                <span>316L STAINLESS STEEL · PAKISTAN COD</span>
               </div>
               <h1 className="hero-title">
                 Jewellery <em>Beyond</em> Elegance.
               </h1>
               <p className="hero-lead">
                 Sculptural silver-tone and gold-color stainless steel rings set with precision-cut black and clear
-                crystals—designed for waterproof everyday wear, high-jewellery poise, and honest pricing.
+                crystals—crafted for waterproof everyday wear and delivered nationwide with Cash on Delivery.
               </p>
 
               <div className="hero-cta-group">
@@ -602,8 +603,8 @@ export function ZevoraStorefront() {
                     ∞
                   </span>
                   <div>
-                    <strong>Card, COD &amp; Bank</strong>
-                    <span>Flexible checkout &amp; 30-day exchanges</span>
+                    <strong>Nationwide COD</strong>
+                    <span>Pay in cash at your doorstep across Pakistan</span>
                   </div>
                 </div>
               </div>
@@ -632,7 +633,7 @@ export function ZevoraStorefront() {
                   <div className="spotlight-meta">
                     <span className="spotlight-kicker">Signature Creation</span>
                     <strong>Noir Bypass Cuff</strong>
-                    <span className="spotlight-price">$34 · 3 Studio Views →</span>
+                    <span className="spotlight-price">{formatPKR(2250)} · 3 Studio Views →</span>
                   </div>
                 </button>
               </div>
@@ -694,7 +695,7 @@ export function ZevoraStorefront() {
                 <h2 className="section-title">Curated Creations</h2>
                 <p className="section-subtitle">
                   Tap any ring for multi-angle studio views, transparent stainless steel &amp; crystal specs, and easy
-                  sizing.
+                  Cash on Delivery ordering.
                 </p>
               </div>
               <div className="saved-size-banner">
@@ -722,13 +723,13 @@ export function ZevoraStorefront() {
               <span>
                 <strong>Transparent Craft Promise:</strong> All ZEVORA pieces are crafted from skin-friendly{' '}
                 <strong>316L Stainless Steel</strong> (silver-tone &amp; gold-color finishes) with simulated{' '}
-                <strong>AAA Cubic Zirconia &amp; Faceted Crystals</strong>—never misleadingly marked up as solid gold,
-                platinum, or mined diamonds.
+                <strong>AAA Cubic Zirconia &amp; Faceted Crystals</strong>—honest PKR pricing with zero fine-gold
+                markup.
               </span>
               <div className="material-tags">
                 <span className="material-tag">316L Stainless Steel</span>
-                <span className="material-tag">Gold &amp; Silver Finishes</span>
                 <span className="material-tag">Simulated CZ Crystals</span>
+                <span className="material-tag">Nationwide COD</span>
               </div>
             </div>
 
@@ -876,7 +877,7 @@ export function ZevoraStorefront() {
                         </h3>
                         <p className="product-sub">{p.subtitle}</p>
                         <div className="product-card-footer">
-                          <span className="product-price">${p.price}</span>
+                          <span className="product-price">{formatPKR(p.price)}</span>
                           <div className="card-btn-group">
                             <button
                               type="button"
@@ -922,11 +923,11 @@ export function ZevoraStorefront() {
                   <strong>ZEVORA</strong> was created around a modern promise: extraordinary elegance shouldn’t require
                   a vault or delicate handling. By pairing precision-finished <strong>316L stainless steel</strong> with
                   luminous <strong>simulated crystals &amp; AAA cubic zirconia</strong>, we craft rings you can wear
-                  confidently from morning errands to midnight celebrations.
+                  confidently from daily routines to wedding festivities.
                 </p>
                 <p className="vision-paragraph">
                   Rooted in obsidian depth, warm champagne radiance, and enduring gold-tone polish, every ZEVORA piece
-                  delivers timeless design with complete honesty and everyday resilience.
+                  delivers timeless design with complete honesty and nationwide doorstep convenience.
                 </p>
                 <div className="vision-palette">
                   <span className="palette-label">Signature Palette</span>
@@ -999,7 +1000,7 @@ export function ZevoraStorefront() {
                   </svg>
                 </div>
                 <h3>Made for You</h3>
-                <p>Interactive ring sizing, complimentary gift notes, and live order tracking.</p>
+                <p>Interactive ring sizing, complimentary gift notes, and Cash on Delivery across Pakistan.</p>
               </article>
             </div>
           </div>
@@ -1057,7 +1058,7 @@ export function ZevoraStorefront() {
                           <div>
                             <strong>{p.name}</strong>
                             <span>
-                              ${p.price} · {p.finishShort}
+                              {formatPKR(p.price)} · {p.finishShort}
                             </span>
                           </div>
                         </div>
@@ -1136,8 +1137,8 @@ export function ZevoraStorefront() {
               <span className="section-eyebrow">CARE &amp; HONESTY</span>
               <h2 className="section-title">Questions? We’re Right Here.</h2>
               <p className="section-subtitle">
-                Clear materials, effortless sizing, and warm human support—shopping for jewellery should feel genuinely
-                relaxing.
+                Clear materials, effortless sizing, and warm support across Pakistan—shopping for jewellery should feel
+                genuinely relaxing.
               </p>
 
               <div className="concierge-card">
@@ -1147,7 +1148,7 @@ export function ZevoraStorefront() {
                 <div className="concierge-copy">
                   <h3>Personal Stylist &amp; Gifting Concierge</h3>
                   <p>
-                    Need help pairing silver-tone and gold-color rings, guessing a gift size, or tracking a delivery?
+                    Need help pairing silver-tone and gold-color rings, guessing a gift size, or tracking a parcel?
                     Reach out anytime.
                   </p>
                   <div className="concierge-actions">
@@ -1244,7 +1245,7 @@ export function ZevoraStorefront() {
               </div>
               <p className="footer-desc">
                 Honest 316L stainless steel &amp; AAA crystal jewellery crafted for timeless elegance, lasting shine,
-                and everyday comfort.
+                and everyday comfort across Pakistan.
               </p>
             </div>
 
@@ -1281,14 +1282,14 @@ export function ZevoraStorefront() {
             <div className="footer-link-col">
               <h4>Atelier Contact</h4>
               <a href="mailto:info@zevorastores.com">info@zevorastores.com</a>
-              <span>Mon – Sat · 10:00 AM – 8:00 PM</span>
-              <span>Card · COD · Bank Transfer</span>
+              <span>Mon – Sat · 10:00 AM – 8:00 PM PKT</span>
+              <span>Cash on Delivery · All Over Pakistan</span>
             </div>
           </div>
 
           <div className="footer-bottom">
             <span>© 2026 ZEVORA Jewellery. All rights reserved.</span>
-            <span>316L Stainless Steel &amp; Simulated CZ Crystals · Built with Next.js</span>
+            <span>316L Stainless Steel &amp; Simulated CZ Crystals · Pakistan (PKR)</span>
           </div>
         </div>
       </footer>
@@ -1334,7 +1335,7 @@ export function ZevoraStorefront() {
             <h2 id="conciergeTitle">Ask a Personal Stylist</h2>
             <p className="modal-lead">
               Tell us the occasion, finish preference (silver-tone or gold-color steel), or gifting question—we’ll
-              recommend the right fit.
+              reply from info@zevorastores.com.
             </p>
             {conciergeRef ? (
               <div className="form-success-box">
@@ -1369,7 +1370,7 @@ export function ZevoraStorefront() {
                       type="text"
                       value={conciergeContact}
                       onChange={(e) => setConciergeContact(e.target.value)}
-                      placeholder="you@email.com or +92..."
+                      placeholder="0300 1234567 or email"
                       required
                     />
                   </label>

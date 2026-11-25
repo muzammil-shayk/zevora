@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { sendConciergeEmail } from '@/lib/email/orderMailer';
 import { saveConciergeInquiry } from '@/lib/store';
 import { isNonEmptyString, isRecord, type ConciergeApiResponse } from '@/types/commerce';
 
@@ -20,7 +21,7 @@ export async function POST(request: Request): Promise<NextResponse<ConciergeApiR
     }
 
     const inquiryId = `INQ-${crypto.randomInt(1000, 9999)}`;
-    await saveConciergeInquiry({
+    const record = await saveConciergeInquiry({
       inquiryId,
       name: body.name.trim(),
       contact: body.contact.trim(),
@@ -28,6 +29,8 @@ export async function POST(request: Request): Promise<NextResponse<ConciergeApiR
       message: body.message.trim().slice(0, 1000),
       createdAt: new Date().toISOString()
     });
+
+    await sendConciergeEmail(record);
 
     return NextResponse.json({ ok: true, inquiryId }, { status: 201 });
   } catch {

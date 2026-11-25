@@ -47,7 +47,30 @@ export interface FaqItem {
   answer: string;
 }
 
-export const FREE_SHIPPING_THRESHOLD = 60;
+export const CURRENCY_CODE = 'PKR';
+export const FREE_SHIPPING_THRESHOLD = 3500;
+export const STANDARD_SHIPPING_FEE = 250;
+
+export const PAKISTAN_CITIES: readonly string[] = [
+  'Lahore',
+  'Karachi',
+  'Islamabad',
+  'Rawalpindi',
+  'Faisalabad',
+  'Multan',
+  'Peshawar',
+  'Gujranwala',
+  'Sialkot',
+  'Quetta',
+  'Hyderabad',
+  'Bahawalpur',
+  'Abbottabad',
+  'Sargodha',
+  'Gujrat',
+  'Mardan',
+  'Sukkur',
+  'Other City (Pakistan)'
+] as const;
 
 export const PRODUCTS: Product[] = [
   {
@@ -60,7 +83,7 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Polished Silver-Tone Stainless Steel',
     finishShort: 'Silver-Tone Steel',
     stoneSpec: 'Faceted Black Cubic Zirconia (Simulated)',
-    price: 34,
+    price: 2250,
     badge: 'Signature',
     featuredRank: 1,
     rating: 4.9,
@@ -78,7 +101,7 @@ export const PRODUCTS: Product[] = [
       'Solid 316L stainless steel in mirror silver-tone — waterproof & rust-free',
       'Precision-cut black cubic zirconia crystals (simulated, non-diamond stones)',
       'Open bypass comfort fit adapts gracefully to finger movement',
-      'Presented in our ZEVORA velvet keepsake box & care pouch'
+      'Presented in our ZEVORA velvet keepsake box · Cash on Delivery nationwide'
     ]
   },
   {
@@ -91,7 +114,7 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Polished Silver-Tone Stainless Steel',
     finishShort: 'Silver-Tone Steel',
     stoneSpec: 'Channel-Set Clear Cubic Zirconia (Simulated)',
-    price: 32,
+    price: 2150,
     badge: 'Bestseller',
     featuredRank: 2,
     rating: 5.0,
@@ -104,12 +127,12 @@ export const PRODUCTS: Product[] = [
     ],
     imageLabels: ['Obsidian Studio', 'Macro Craft', 'Champagne Editorial'],
     description:
-      'Minimalist polish with brilliant clarity. High-clarity clear baguette cubic zirconia crystals sit flush along a smooth silver-tone stainless steel band—luminous enough for evening outings, tough enough for daily wear.',
+      'Minimalist polish with brilliant clarity. High-clarity clear baguette cubic zirconia crystals sit flush along a smooth silver-tone stainless steel band—luminous for festive evenings, durable enough for daily wear.',
     highlights: [
       'Durable mirror-polished 316L stainless steel (not platinum or sterling)',
       'AAA clear baguette cubic zirconia crystals for crisp light reflection',
       'Snag-free flush channel setting with comfort-beveled inner band',
-      'Skin-friendly, hypoallergenic & tarnish-resistant finish'
+      'Skin-friendly, hypoallergenic & tarnish-resistant in humid weather'
     ]
   },
   {
@@ -122,7 +145,7 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Polished Silver-Tone Stainless Steel',
     finishShort: 'Silver-Tone Steel',
     stoneSpec: 'Round Black & Clear Baguette Cubic Zirconia',
-    price: 34,
+    price: 2250,
     badge: 'New Arrival',
     featuredRank: 3,
     rating: 4.9,
@@ -152,7 +175,7 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Polished Silver-Tone Stainless Steel',
     finishShort: 'Silver-Tone Steel',
     stoneSpec: 'Oval Black Faceted Crystal & Clear Pavé CZ',
-    price: 36,
+    price: 2450,
     badge: 'Bestseller',
     featuredRank: 4,
     rating: 5.0,
@@ -169,7 +192,7 @@ export const PRODUCTS: Product[] = [
       'Mirror-polished silver-tone stainless steel — resists fading & green fingers',
       'Simulated oval black crystal surrounded by sparkling clear CZ stones',
       'Smooth tapered inner shank designed for comfortable hours of wear',
-      'A favorite for parties, dinners, and thoughtful everyday gifting'
+      'A favorite for weddings, dinners, Eid gifting, and formal evenings'
     ]
   },
   {
@@ -182,7 +205,7 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Gold-Color Stainless Steel',
     finishShort: 'Gold-Color Steel',
     stoneSpec: 'Flush-Set Clear Cubic Zirconia Accent',
-    price: 28,
+    price: 1850,
     badge: 'Signature',
     featuredRank: 5,
     rating: 4.9,
@@ -213,7 +236,7 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Gold-Color Stainless Steel',
     finishShort: 'Gold-Color Steel',
     stoneSpec: 'Sculpted All-Metal Gold-Color Steel',
-    price: 24,
+    price: 1650,
     badge: 'Gift Favorite',
     featuredRank: 6,
     rating: 4.8,
@@ -244,7 +267,7 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Two-Tone Silver & Gold-Color Stainless Steel',
     finishShort: 'Two-Tone Steel',
     stoneSpec: 'Polished Flat Black Onyx-Style Stone',
-    price: 38,
+    price: 2750,
     badge: "Men's Edition",
     featuredRank: 7,
     rating: 5.0,
@@ -274,7 +297,7 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Two-Tone Silver & Gold-Color Stainless Steel',
     finishShort: 'Two-Tone Steel',
     stoneSpec: 'Polished Square Black Onyx-Style Stone',
-    price: 36,
+    price: 2550,
     badge: "Men's Edition",
     featuredRank: 8,
     rating: 4.9,
@@ -305,8 +328,8 @@ export const PRODUCTS: Product[] = [
     finishLabel: 'Silver & Gold-Color Stainless Steel Set',
     finishShort: 'Mixed Steel Trio',
     stoneSpec: 'Assorted Black & Clear AAA Cubic Zirconia',
-    price: 79,
-    badge: 'Save $19',
+    price: 5450,
+    badge: 'Save Rs. 1,100',
     featuredRank: 9,
     rating: 5.0,
     reviews: 24,
@@ -323,7 +346,7 @@ export const PRODUCTS: Product[] = [
       'Includes complimentary charcoal suede multi-ring presentation tray',
       'All pieces crafted in durable 316L stainless steel & precision CZ crystals',
       'Mix ring sizes across fingers (just add a note at checkout)',
-      'Automatically unlocks complimentary insured express delivery'
+      'Automatically unlocks complimentary nationwide COD delivery across Pakistan'
     ]
   }
 ];
@@ -335,7 +358,7 @@ export const LOOKBOOK_TABS: LookbookTab[] = [
     eyebrow: 'AFTER-DARK BRILLIANCE',
     title: 'Black Crystal Drama, Effortless Wear',
     description:
-      'High-contrast black cubic zirconia and mirror silver-tone stainless steel silhouettes made for evening wear, monochrome tailoring, and bold statements—without ever worrying about fragile fine stones.',
+      'High-contrast black cubic zirconia and mirror silver-tone stainless steel silhouettes made for formal dinners, wedding festivities, and bold statements—without ever worrying about fragile fine stones.',
     image: '/images/products/01_hero_black_crystal_collection.jpg',
     secondaryImage: '/images/products/01_black_open_bypass_cuff/02_macro_detail.jpg',
     featuredIds: ['velvet-eclipse-halo', 'noir-bypass-cuff', 'vendome-art-deco-band'],
@@ -348,7 +371,7 @@ export const LOOKBOOK_TABS: LookbookTab[] = [
     eyebrow: 'GOLD-COLOR STAINLESS STEEL',
     title: 'Warm Golden Shine Built for Real Life',
     description:
-      'Sculptural gold-colored stainless steel bands that glow warmly against skin and neutral fabrics. Waterproof and tarnish-resistant so you can wear them from morning coffee through dinner.',
+      'Sculptural gold-colored stainless steel bands that glow warmly against skin and festive outfits. Waterproof and sweat-resistant so you can wear them effortlessly all day.',
     image: '/images/products/03_macro_gold_sculptural_detail.jpg',
     secondaryImage: '/images/products/02_cd_monogram_baguette_band/03_editorial_luxury.jpg',
     featuredIds: ['aurelia-gold-buckle', 'etreinte-embrace-ring', 'celeste-baguette-band'],
@@ -374,7 +397,7 @@ export const LOOKBOOK_TABS: LookbookTab[] = [
     eyebrow: 'MADE FOR YOU',
     title: 'Luxury Unboxing at Honest Everyday Prices',
     description:
-      'Every ZEVORA stainless steel creation arrives nestled inside our signature matte black gold-foil box and champagne rope-handle bag—ready to gift the moment it reaches your door.',
+      'Every ZEVORA stainless steel creation arrives nestled inside our signature matte black gold-foil box and champagne rope-handle bag—ready to gift the moment it reaches your doorstep.',
     image: '/images/products/04_lifestyle_curated_flatlay.jpg',
     secondaryImage: '/images/brand/packaging-box-hd.jpg',
     featuredIds: ['atelier-collectors-vault', 'celeste-baguette-band', 'etreinte-embrace-ring'],
@@ -398,7 +421,12 @@ export const FAQS: FaqItem[] = [
   {
     question: 'Are ZEVORA rings made of real gold, platinum, or natural diamonds?',
     answer:
-      'No—and we believe in complete honesty. Every ZEVORA ring is crafted from durable, skin-friendly 316L stainless steel (in polished silver-tone or rich gold-color finish) and set with precision-cut AAA cubic zirconia & black faceted crystals (simulated stones, not natural diamonds). This lets us offer luxury aesthetic craft, impressive weight, and water-resistant shine at honest everyday prices.'
+      'No—and we believe in complete honesty. Every ZEVORA ring is crafted from durable, skin-friendly 316L stainless steel (in polished silver-tone or rich gold-color finish) and set with precision-cut AAA cubic zirconia & black faceted crystals (simulated stones, not natural diamonds). This lets us offer luxury aesthetic craft, impressive weight, and water-resistant shine at honest PKR prices.'
+  },
+  {
+    question: 'How does Cash on Delivery (COD) work across Pakistan?',
+    answer:
+      'Place your order online in 30 seconds with zero upfront payment. You pay in cash directly to the courier rider when your ZEVORA parcel arrives at your doorstep anywhere in Pakistan. Delivery is Rs. 250 nationwide—and completely FREE on orders over Rs. 3,500.'
   },
   {
     question: 'Will the gold-color or silver-tone stainless steel tarnish or turn skin green?',
@@ -408,16 +436,11 @@ export const FAQS: FaqItem[] = [
   {
     question: 'What if I choose the wrong ring size?',
     answer:
-      'Never worry—we offer complimentary, hassle-free size exchanges within 30 days of delivery. You can also use our 30-Second Interactive Ring Size Finder right here on the site to match an existing ring or finger measurement with confidence.'
+      'Never worry—we offer easy size exchanges within 14 days of delivery. You can also use our 30-Second Interactive Ring Size Finder right here on the site to match your US & Size 16–23 fit before ordering.'
   },
   {
-    question: 'Does every order come in ZEVORA luxury packaging?',
+    question: 'How quickly do orders deliver across Pakistan?',
     answer:
-      'Yes, always at zero extra cost. Every piece arrives nestled inside our matte black gold-foil velvet ring box, accompanied by our champagne rope-handle boutique bag, care card, and optional handwritten gift message.'
-  },
-  {
-    question: 'How quickly do orders ship?',
-    answer:
-      'In-stock pieces are individually inspected for finish and stone security and dispatched within 24 hours. Insured express delivery arrives in 2–4 business days and is complimentary on all orders over $60.'
+      'In-stock rings are carefully checked, packed inside our signature ZEVORA matte black velvet box, and dispatched within 24 hours. Delivery takes 2–3 working days in major cities (Lahore, Karachi, Islamabad, Rawalpindi) and 3–5 working days nationwide.'
   }
 ];

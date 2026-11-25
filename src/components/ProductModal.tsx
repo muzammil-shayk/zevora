@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Product } from '@/data/catalog';
+import { formatPKR } from '@/lib/format';
 
 interface ProductModalProps {
   product: Product | null;
@@ -77,14 +78,15 @@ export function ProductModal({
           <h2 id="modalProductTitle">{product.name}</h2>
 
           <div className="modal-price-row">
-            <span className="modal-price">${product.price}</span>
+            <span className="modal-price">{formatPKR(product.price)}</span>
             <span className="rating-chip">
               <span>★</span> {product.rating.toFixed(1)} · {product.reviews} client reviews
             </span>
           </div>
 
           <div className="modal-material-spec">
-            <strong>Honest Craft Spec:</strong> {product.finishLabel} · {product.stoneSpec}
+            <strong>Honest Craft Spec:</strong> {product.finishLabel} · {product.stoneSpec} · Cash on Delivery
+            Nationwide
           </div>
 
           <p className="modal-description">{product.description}</p>
@@ -117,7 +119,7 @@ export function ProductModal({
               className="btn btn-gold"
               onClick={() => onAddToBag(product.id, selectedSize)}
             >
-              Add to ZEVORA Bag — ${product.price}
+              Add to ZEVORA Bag — {formatPKR(product.price)}
             </button>
             <button
               type="button"
