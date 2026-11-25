@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, type FormEvent } from 'react';
 import {
   FAQS,
   FREE_SHIPPING_THRESHOLD,
@@ -61,6 +61,7 @@ function isStringArray(value: unknown): value is string[] {
 
 export function ZevoraStorefront() {
   const [scrolled, setScrolled] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -160,11 +161,20 @@ export function ZevoraStorefront() {
   }, [lastOrderId, hydrated]);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 24);
+      // Header steps aside while reading down the page and returns on any scroll up.
+      if (Math.abs(y - lastY) > 8) {
+        setHeaderHidden(y > lastY && y > 520);
+        lastY = y;
+      }
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setActiveOverlay('none');
     };
-    window.addEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('scroll', onScroll);
@@ -176,6 +186,18 @@ export function ZevoraStorefront() {
     document.body.classList.toggle('no-scroll', activeOverlay !== 'none');
     return () => document.body.classList.remove('no-scroll');
   }, [activeOverlay]);
+
+  const filterPillsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const row = filterPillsRef.current;
+    const pill = row?.querySelector<HTMLElement>('.filter-pill.active');
+    if (!row || !pill || row.scrollWidth <= row.clientWidth) return;
+    row.scrollTo({
+      left: pill.offsetLeft + pill.offsetWidth / 2 - row.clientWidth / 2,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    });
+  }, [category]);
 
   const showToast = (text: string): void => {
     const id = Date.now() + Math.random();
@@ -373,14 +395,16 @@ export function ZevoraStorefront() {
       {/* Friendly Announcement Bar */}
       <div className="announcement-bar" role="region" aria-label="Boutique benefits">
         <div className="container announcement-inner">
-          <span>
-            Cash on Delivery Across Pakistan · Free Delivery Over {formatPKR(FREE_SHIPPING_THRESHOLD)}
+          <span className="announcement-copy">
+            <span className="announce-long">Cash on Delivery Across Pakistan</span>
+            <span className="announce-short">COD Nationwide</span> · Free Delivery Over{' '}
+            {formatPKR(FREE_SHIPPING_THRESHOLD)}
           </span>
-          <span className="announcement-dot" aria-hidden="true">
+          <span className="announcement-dot announcement-dot-lead" aria-hidden="true">
             ✦
           </span>
           <button type="button" className="announcement-link" onClick={() => setActiveOverlay('size-finder')}>
-            30-Second Ring Size Finder →
+            <span className="announce-long">30-Second </span>Ring Size Finder →
           </button>
           <span className="announcement-dot" aria-hidden="true">
             ·
@@ -392,13 +416,18 @@ export function ZevoraStorefront() {
       </div>
 
       {/* Sticky Header */}
-      <header className={`site-header ${scrolled ? 'scrolled' : ''}`}>
+      <header
+        className={`site-header ${scrolled ? 'scrolled' : ''} ${
+          headerHidden && !mobileNavOpen && !searchOpen ? 'header-hidden' : ''
+        }`}
+      >
         <div className="container header-inner">
           <button
             type="button"
             className="icon-btn mobile-menu-btn"
-            aria-label="Open navigation menu"
+            aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileNavOpen}
+            aria-controls="mobile-nav"
             onClick={() => setMobileNavOpen((prev) => !prev)}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -432,8 +461,9 @@ export function ZevoraStorefront() {
 
             <button
               type="button"
-              className="icon-btn"
+              className="icon-btn search-toggle"
               aria-label="Search jewellery"
+              aria-expanded={searchOpen}
               onClick={() => setSearchOpen((prev) => !prev)}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -478,6 +508,7 @@ export function ZevoraStorefront() {
               </svg>
               <input
                 type="search"
+                aria-label="Search jewellery"
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => {
@@ -503,7 +534,7 @@ export function ZevoraStorefront() {
         )}
 
         {mobileNavOpen && (
-          <div className="mobile-nav">
+          <nav className="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
             <a href="#collection" className="mobile-nav-link" onClick={() => setMobileNavOpen(false)}>
               Shop Collection
             </a>
@@ -541,7 +572,7 @@ export function ZevoraStorefront() {
                 Track Your Order
               </button>
             </div>
-          </div>
+          </nav>
         )}
       </header>
 
@@ -551,10 +582,10 @@ export function ZevoraStorefront() {
           <div className="hero-ambient" aria-hidden="true" />
           <div className="container hero-grid">
             <div className="hero-copy">
-              <div className="eyebrow-pill">
+              <p className="hero-eyebrow">
                 <span aria-hidden="true">✦</span>
-                <span>316L STAINLESS STEEL · PAKISTAN COD</span>
-              </div>
+                <span>316L Stainless Steel · Pakistan COD</span>
+              </p>
               <h1 className="hero-title">
                 Jewellery <em>Beyond</em> Elegance.
               </h1>
@@ -616,9 +647,13 @@ export function ZevoraStorefront() {
                   src="/images/products/01_hero_black_crystal_collection.jpg"
                   alt="ZEVORA Stainless Steel & Black Crystal Ring Collection"
                   className="hero-main-img"
+                  width={896}
+                  height={1120}
+                  fetchPriority="high"
+                  decoding="async"
                 />
                 <div className="hero-seal-badge" aria-hidden="true">
-                  <img src="/images/brand/zevora-emblem-badge-hd.png" alt="" />
+                  <img src="/images/brand/zevora-emblem-badge-hd.png" alt="" width={1024} height={1024} />
                 </div>
                 <button
                   type="button"
@@ -629,6 +664,8 @@ export function ZevoraStorefront() {
                     src="/images/products/01_black_open_bypass_cuff/01_hero_studio.jpg"
                     alt="Noir Architectural Bypass Cuff studio preview"
                     className="spotlight-thumb"
+                    width={1080}
+                    height={1350}
                   />
                   <div className="spotlight-meta">
                     <span className="spotlight-kicker">Signature Creation</span>
@@ -646,7 +683,7 @@ export function ZevoraStorefront() {
           <div className="container">
             <div className="mood-grid">
               <button type="button" className="mood-card" onClick={() => jumpToCategory('noir')}>
-                <img src="/images/products/01_hero_black_crystal_collection.jpg" alt="Noir Crystal Rings" />
+                <img src="/images/products/01_hero_black_crystal_collection.jpg" alt="" width={896} height={1120} loading="lazy" decoding="async" />
                 <div className="mood-card-text">
                   <span className="mood-kicker">01 · Evening Drama</span>
                   <strong>Noir Crystal</strong>
@@ -656,7 +693,11 @@ export function ZevoraStorefront() {
               <button type="button" className="mood-card" onClick={() => jumpToCategory('gold')}>
                 <img
                   src="/images/products/03_macro_gold_sculptural_detail.jpg"
-                  alt="Gold-Color Stainless Steel Rings"
+                  alt=""
+                  width={896}
+                  height={1120}
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="mood-card-text">
                   <span className="mood-kicker">02 · Everyday Warmth</span>
@@ -667,7 +708,11 @@ export function ZevoraStorefront() {
               <button type="button" className="mood-card" onClick={() => jumpToCategory('architectural')}>
                 <img
                   src="/images/products/02_cd_monogram_baguette_band/03_editorial_luxury.jpg"
-                  alt="Architectural Baguette & Bypass Rings"
+                  alt=""
+                  width={1080}
+                  height={1350}
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="mood-card-text">
                   <span className="mood-kicker">03 · Modern Icon</span>
@@ -676,7 +721,7 @@ export function ZevoraStorefront() {
               </button>
 
               <button type="button" className="mood-card" onClick={() => jumpToCategory('mens')}>
-                <img src="/images/products/02_editorial_mens_onyx_signets.jpg" alt="Men's Stainless Steel Signets" />
+                <img src="/images/products/02_editorial_mens_onyx_signets.jpg" alt="" width={896} height={1120} loading="lazy" decoding="async" />
                 <div className="mood-card-text">
                   <span className="mood-kicker">04 · Bold Heritage</span>
                   <strong>Men’s Signets</strong>
@@ -735,7 +780,7 @@ export function ZevoraStorefront() {
 
             {/* Filter Toolbar */}
             <div className="filter-bar">
-              <div className="filter-pills" role="tablist" aria-label="Filter by category">
+              <div className="filter-pills" role="group" aria-label="Filter by category" ref={filterPillsRef}>
                 {(
                   [
                     { id: 'all', label: 'All Pieces' },
@@ -748,8 +793,7 @@ export function ZevoraStorefront() {
                   <button
                     key={tab.id}
                     type="button"
-                    role="tab"
-                    aria-selected={category === tab.id}
+                    aria-pressed={category === tab.id}
                     className={`filter-pill ${category === tab.id ? 'active' : ''}`}
                     onClick={() => setCategory(tab.id)}
                   >
@@ -826,13 +870,25 @@ export function ZevoraStorefront() {
                         className={`product-media ${hasSecond ? 'has-secondary' : ''}`}
                         onClick={() => openProduct(p.id)}
                       >
-                        <img src={p.images[0]} alt={p.name} className="img-primary" loading="lazy" />
+                        <img
+                          src={p.images[0]}
+                          alt={p.name}
+                          className="img-primary"
+                          width={1080}
+                          height={1350}
+                          loading="lazy"
+                          decoding="async"
+                        />
                         {hasSecond && (
                           <img
                             src={p.images[1]}
-                            alt={`${p.name} alternate view`}
+                            alt=""
+                            aria-hidden="true"
                             className="img-secondary"
+                            width={1080}
+                            height={1350}
                             loading="lazy"
+                            decoding="async"
                           />
                         )}
                         <span className="product-badge">{p.badge}</span>
@@ -869,11 +925,19 @@ export function ZevoraStorefront() {
                             {p.finishShort}
                           </span>
                           <span className="rating-chip">
-                            <span>★</span> {p.rating.toFixed(1)} ({p.reviews})
+                            <span aria-hidden="true">
+                              <span className="rating-star">★</span> {p.rating.toFixed(1)}{' '}
+                              <span className="rating-count">({p.reviews})</span>
+                            </span>
+                            <span className="sr-only">
+                              Rated {p.rating.toFixed(1)} out of 5 from {p.reviews} reviews
+                            </span>
                           </span>
                         </div>
-                        <h3 className="product-title" onClick={() => openProduct(p.id)}>
-                          {p.name}
+                        <h3 className="product-title">
+                          <button type="button" className="product-title-btn" onClick={() => openProduct(p.id)}>
+                            {p.name}
+                          </button>
                         </h3>
                         <p className="product-sub">{p.subtitle}</p>
                         <div className="product-card-footer">
@@ -884,7 +948,7 @@ export function ZevoraStorefront() {
                               className="btn btn-outline-dark btn-sm"
                               onClick={() => openProduct(p.id)}
                             >
-                              Details
+                              Details<span className="sr-only"> for {p.name}</span>
                             </button>
                             <button
                               type="button"
@@ -892,6 +956,7 @@ export function ZevoraStorefront() {
                               onClick={() => addToBag(p.id, defaultSize)}
                             >
                               Add · {defaultSize}
+                              <span className="sr-only"> — {p.name} to bag</span>
                             </button>
                           </div>
                         </div>
