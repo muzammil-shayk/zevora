@@ -47,8 +47,8 @@ jobs:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_ORG_ID: ${{ secrets.ZEVORA_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.ZEVORA_PROJECT_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -59,18 +59,18 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Check Vercel deployment secrets
+      - name: Check deployment secrets
         id: check_secrets
         env:
-          HAS_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
-          HAS_ORG: ${{ secrets.VERCEL_ORG_ID != '' }}
-          HAS_PROJECT: ${{ secrets.VERCEL_PROJECT_ID != '' }}
+          HAS_TOKEN: ${{ secrets.ZEVORA_DEPLOY_TOKEN != '' }}
+          HAS_ORG: ${{ secrets.ZEVORA_ORG_ID != '' }}
+          HAS_PROJECT: ${{ secrets.ZEVORA_PROJECT_ID != '' }}
         run: |
           if [ "$HAS_TOKEN" = "true" ] && [ "$HAS_ORG" = "true" ] && [ "$HAS_PROJECT" = "true" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID not set in GitHub Secrets yet — skipping CLI deploy (Vercel Git Integration will still deploy automatically)."
+            echo "::notice::ZEVORA_DEPLOY_TOKEN / ZEVORA_ORG_ID / ZEVORA_PROJECT_ID not set in GitHub Secrets yet — skipping CLI deploy."
           fi
 
       - name: Install Vercel CLI
@@ -79,16 +79,16 @@ jobs:
 
       - name: Pull Vercel Production Environment Information
         if: steps.check_secrets.outputs.ready == 'true'
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token=${{ secrets.ZEVORA_DEPLOY_TOKEN }}
 
       - name: Build Prebuilt Vercel Output
         if: steps.check_secrets.outputs.ready == 'true'
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token=${{ secrets.ZEVORA_DEPLOY_TOKEN }}
 
       - name: Deploy Prebuilt Artifacts to Production
         if: steps.check_secrets.outputs.ready == 'true'
         id: deploy
         run: |
-          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.ZEVORA_DEPLOY_TOKEN }})
           echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
           echo "Deployed ZEVORA Production to: $DEPLOY_URL"

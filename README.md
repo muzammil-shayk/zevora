@@ -13,9 +13,9 @@ Official Next.js (App Router + Strict TypeScript) storefront for **ZEVORA** ([ze
 `.github/workflows/ci-cd.yml` runs automatically on every PR and push to `main`:
 1. **Quality Gate**: `npm run check:no-any`, `npm run typecheck`, and `npm run build`.
 2. **Production Deploy (`main`)**: Builds and deploys prebuilt output to Vercel once these 3 repository secrets are added under **GitHub → Settings → Secrets and variables → Actions**:
-   - `VERCEL_TOKEN` (from [vercel.com/account/tokens](https://vercel.com/account/tokens))
-   - `VERCEL_ORG_ID` (from Vercel → Team/Account Settings)
-   - `VERCEL_PROJECT_ID` (from Vercel → Project Settings → General)
+   - `ZEVORA_DEPLOY_TOKEN` (from [vercel.com/account/tokens](https://vercel.com/account/tokens))
+   - `ZEVORA_ORG_ID` (from Vercel → Team/Account Settings)
+   - `ZEVORA_PROJECT_ID` (from Vercel → Project Settings → General)
 
 ## Vercel Environment Variables (To Receive Live Order Emails)
 Add these in **Vercel → Project Settings → Environment Variables**:
