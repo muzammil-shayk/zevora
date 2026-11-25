@@ -6,17 +6,19 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "check:no-any": "node -e \"const fs=require('fs'),path=require('path');const bad=[];const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory())walk(p);else if(/\\.tsx?$/.test(e.name)){const lines=fs.readFileSync(p,'utf8').split(/\\r?\\n/);lines.forEach((l,i)=>{if(/(:\\s*any\\b|\\bas\\s+any\\b|<any>)/.test(l))bad.push(p+':'+(i+1)+': '+l.trim());});}}};walk('src');if(bad.length){console.error('Forbidden TypeScript any found:\\n'+bad.join('\\n'));process.exit(1);}console.log('Zero TypeScript any verified.');\""
   },
   "dependencies": {
-    "@types/nodemailer": "^8.0.2",
     "next": "^15.3.0",
-    "nodemailer": "^10.6.1",
+    "nodemailer": "^8.0.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/nodemailer": "^7.0.11",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.7.0"
