@@ -403,11 +403,6 @@ export function CheckoutModal({
                   ? '✦ Dispatch details sent to ZEVORA Atelier & confirmation emailed to you.'
                   : '✦ Order recorded in ZEVORA dispatch queue. Keep your order reference handy to track status.'}
               </p>
-              {emailNotification && !emailNotification.merchantNotified && emailNotification.errorMessage && (
-                <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', margin: '0.35rem 0 0' }}>
-                  Email not sent: {emailNotification.errorMessage}
-                </p>
-              )}
             </div>
             <div className="concierge-actions" style={{ justifyContent: 'center' }}>
               <button
@@ -445,42 +440,60 @@ export function CheckoutModal({
 
             <form className="styled-form" onSubmit={(e) => void handleSubmit(e)}>
               <div className="form-row-2">
-                <label className="field-group">
+                <label className="field-group" htmlFor="checkout-full-name">
                   <span>Full Name</span>
                   <input
+                    id="checkout-full-name"
+                    name="fullName"
                     type="text"
+                    autoComplete="name"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Ayesha / Muzammil"
+                    placeholder="Full name"
                   />
                 </label>
-                <label className="field-group">
+                <label className="field-group" htmlFor="checkout-phone">
                   <span>Mobile / WhatsApp Number</span>
                   <input
+                    id="checkout-phone"
+                    name="phone"
                     type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="0300 1234567"
+                    placeholder="03XX XXXXXXX"
                   />
                 </label>
               </div>
 
               <div className="form-row-2">
-                <label className="field-group">
+                <label className="field-group" htmlFor="checkout-email">
                   <span>Email (For Order Receipt)</span>
                   <input
+                    id="checkout-email"
+                    name="email"
                     type="email"
+                    inputMode="email"
+                    autoComplete="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@email.com"
+                    placeholder="name@example.com"
                   />
                 </label>
-                <label className="field-group">
+                <label className="field-group" htmlFor="checkout-city">
                   <span>City (Pakistan)</span>
-                  <select value={city} onChange={(e) => setCity(e.target.value)}>
+                  <select
+                    id="checkout-city"
+                    name="city"
+                    autoComplete="address-level2"
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                  >
                     {PAKISTAN_CITIES.map((c) => (
                       <option key={c} value={c}>
                         {c}
@@ -490,34 +503,43 @@ export function CheckoutModal({
                 </label>
               </div>
 
-              <label className="field-group">
+              <label className="field-group" htmlFor="checkout-address">
                 <span>Complete Street / House / Sector Address</span>
                 <input
+                  id="checkout-address"
+                  name="address"
                   type="text"
+                  autoComplete="street-address"
                   required
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="House #, Street #, Block / Phase / Sector"
+                  placeholder="House no., street, area"
                 />
               </label>
 
               <div className="form-row-2">
-                <label className="field-group">
+                <label className="field-group" htmlFor="checkout-landmark">
                   <span>Nearest Landmark (Optional)</span>
                   <input
+                    id="checkout-landmark"
+                    name="landmark"
                     type="text"
+                    autoComplete="off"
                     value={landmark}
                     onChange={(e) => setLandmark(e.target.value)}
-                    placeholder="Near Main Market / Mosque / Park"
+                    placeholder="Near a well-known place"
                   />
                 </label>
-                <label className="field-group">
+                <label className="field-group" htmlFor="checkout-delivery-notes">
                   <span>Courier Note (Optional)</span>
                   <input
+                    id="checkout-delivery-notes"
+                    name="deliveryNotes"
                     type="text"
+                    autoComplete="off"
                     value={deliveryNotes}
                     onChange={(e) => setDeliveryNotes(e.target.value)}
-                    placeholder="Call before arrival / Evening preferred"
+                    placeholder="Any note for the rider"
                   />
                 </label>
               </div>
