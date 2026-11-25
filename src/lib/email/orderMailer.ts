@@ -48,7 +48,11 @@ async function sendViaSmtp(mail: OutgoingEmail): Promise<boolean> {
     host,
     port,
     secure: port === 465,
-    auth: { user, pass }
+    auth: { user, pass },
+    // Fail fast so a hung SMTP server cannot hold the checkout request until Vercel kills it.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000
   });
 
   await transporter.sendMail({
@@ -286,9 +290,21 @@ function buildCustomerReceiptEmail(order: OrderRecord): OutgoingEmail {
   };
 }
 
+const EMAIL_DEADLINE_MS = 8_000;
+const EMAIL_DEADLINE_MESSAGE = 'Email timed out after 8s';
+
+function logEmailFailure(transport: 'smtp' | 'resend', role: string, err: unknown): void {
+  const code = err instanceof Error && 'code' in err && typeof err.code === 'string' ? err.code : 'none';
+  const message = (err instanceof Error ? err.message : String(err)).replace(/\s+/g, ' ').trim();
+  console.error(`[orderMailer] email failed transport=${transport} role=${role} code=${code} message=${JSON.stringify(message)}`);
+}
+
 export async function sendOrderEmails(order: OrderRecord): Promise<OrderEmailDispatchResult> {
   const transport = resolveTransport();
   if (transport === 'unconfigured') {
+    console.error(
+      '[orderMailer] email skipped transport=unconfigured reason="SMTP_USER/SMTP_PASS and RESEND_API_KEY not set"'
+    );
     return {
       merchantNotified: false,
       customerNotified: false,
@@ -299,27 +315,57 @@ export async function sendOrderEmails(order: OrderRecord): Promise<OrderEmailDis
 
   let merchantNotified = false;
   let customerNotified = false;
-  let errorMessage: string | undefined;
+  let merchantDone = false;
+  let customerDone = false;
+  let merchantError: string | undefined;
+  let customerError: string | undefined;
 
-  try {
-    merchantNotified = await deliverEmail(buildMerchantOrderEmail(order), transport);
-  } catch (err: unknown) {
-    errorMessage = err instanceof Error ? err.message : 'Merchant email failed.';
-  }
+  const merchantSend = deliverEmail(buildMerchantOrderEmail(order), transport)
+    .then((sent) => {
+      merchantNotified = sent;
+    })
+    .catch((err: unknown) => {
+      logEmailFailure(transport, 'merchant', err);
+      merchantError = err instanceof Error ? err.message : 'Merchant email failed.';
+    })
+    .finally(() => {
+      merchantDone = true;
+    });
 
-  try {
-    customerNotified = await deliverEmail(buildCustomerReceiptEmail(order), transport);
-  } catch (err: unknown) {
-    if (!errorMessage) {
-      errorMessage = err instanceof Error ? err.message : 'Customer receipt email failed.';
-    }
+  const customerSend = deliverEmail(buildCustomerReceiptEmail(order), transport)
+    .then((sent) => {
+      customerNotified = sent;
+    })
+    .catch((err: unknown) => {
+      logEmailFailure(transport, 'customer', err);
+      customerError = err instanceof Error ? err.message : 'Customer receipt email failed.';
+    })
+    .finally(() => {
+      customerDone = true;
+    });
+
+  // One deadline for the whole email phase keeps checkout well inside the function limit.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const finished = await Promise.race([
+    Promise.allSettled([merchantSend, customerSend]).then(() => true),
+    new Promise<false>((resolve) => {
+      timer = setTimeout(() => resolve(false), EMAIL_DEADLINE_MS);
+    })
+  ]);
+  clearTimeout(timer);
+
+  if (!finished) {
+    const pending = [merchantDone ? '' : 'merchant', customerDone ? '' : 'customer'].filter(Boolean).join(',');
+    const deadline = Object.assign(new Error(EMAIL_DEADLINE_MESSAGE), { code: 'DEADLINE' });
+    logEmailFailure(transport, pending, deadline);
+    return { merchantNotified, customerNotified, transport, errorMessage: EMAIL_DEADLINE_MESSAGE };
   }
 
   return {
     merchantNotified,
     customerNotified,
     transport,
-    errorMessage
+    errorMessage: merchantError ?? customerError
   };
 }
 

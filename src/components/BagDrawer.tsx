@@ -403,6 +403,11 @@ export function CheckoutModal({
                   ? '✦ Dispatch details sent to ZEVORA Atelier & confirmation emailed to you.'
                   : '✦ Order recorded in ZEVORA dispatch queue. Keep your order reference handy to track status.'}
               </p>
+              {emailNotification && !emailNotification.merchantNotified && emailNotification.errorMessage && (
+                <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', margin: '0.35rem 0 0' }}>
+                  Email not sent: {emailNotification.errorMessage}
+                </p>
+              )}
             </div>
             <div className="concierge-actions" style={{ justifyContent: 'center' }}>
               <button

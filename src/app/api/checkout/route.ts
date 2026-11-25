@@ -17,6 +17,8 @@ import {
   type OrderRecord
 } from '@/types/commerce';
 
+export const maxDuration = 30;
+
 function parseBagLines(raw: unknown): BagLineInput[] | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
   const lines: BagLineInput[] = [];
